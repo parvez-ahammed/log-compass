@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { ArrowDownToLine, ArrowUpToLine, FileJson, Loader2, Upload } from "lucide-react";
 import {
   Select,
@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useAppStore, type Side } from "@/store/useAppStore";
 import { extractTransferDataFrom7z, readJsonFile } from "@/lib/extract7z";
-import type { FolderMatch } from "@/lib/fileScanner";
 
 interface FileSelectorProps {
   side: Side;
@@ -29,50 +28,6 @@ export function FileSelector({ side }: FileSelectorProps) {
   const sideState = useAppStore((s) => s[side]);
   const selectFolder = useAppStore((s) => s.selectFolder);
   const setSide = useAppStore((s) => s.setSide);
-
-  const current: FolderMatch | undefined = folders.find(
-    (f) => f.folderPath === selected
-  );
-
-  // Auto-load whenever folder changes
-  useEffect(() => {
-    if (!current) return;
-    const tf = current.transferFile;
-    if (!tf) {
-      setSide(side, {
-        rawText: null,
-        sourceLabel: null,
-        loading: false,
-        error: "TransferData.json not found in this folder",
-      });
-      return;
-    }
-
-    let cancelled = false;
-    const run = async () => {
-      setSide(side, { loading: true, error: null, rawText: null });
-      try {
-        const text = tf.path.toLowerCase().endsWith(".7z")
-          ? await extractTransferDataFrom7z(tf.file)
-          : await readJsonFile(tf.file);
-        if (cancelled) return;
-        setSide(side, {
-          rawText: text,
-          sourceLabel: tf.path,
-          loading: false,
-          error: null,
-        });
-      } catch (e) {
-        if (cancelled) return;
-        const msg = e instanceof Error ? e.message : String(e);
-        setSide(side, { loading: false, error: msg });
-      }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
-  }, [current, side, setSide]);
 
   const onFallbackPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

@@ -27,7 +27,7 @@ export function DiffViewer({
   leftJson,
   rightJson,
 }: DiffViewerProps) {
-  const [tab, setTab] = useState<"text" | "structured">("text");
+  const [tab, setTab] = useState<"unified" | "split" | "structured">("unified");
 
   const tooLarge =
     leftText.length > TEXT_DIFF_LIMIT || rightText.length > TEXT_DIFF_LIMIT;
@@ -66,10 +66,17 @@ export function DiffViewer({
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            variant={tab === "text" ? "default" : "ghost"}
-            onClick={() => setTab("text")}
+            variant={tab === "unified" ? "default" : "ghost"}
+            onClick={() => setTab("unified")}
           >
             Unified diff
+          </Button>
+          <Button
+            size="sm"
+            variant={tab === "split" ? "default" : "ghost"}
+            onClick={() => setTab("split")}
+          >
+            Split diff
           </Button>
           <Button
             size="sm"
@@ -103,7 +110,7 @@ export function DiffViewer({
       </div>
 
       <div className="min-h-[380px] max-h-[640px] overflow-auto scrollbar-thin">
-        {tab === "text" ? (
+        {tab !== "structured" ? (
           tooLarge ? (
             <div className="p-6 text-sm text-muted-foreground">
               Files are large ({leftText.length.toLocaleString()} /{" "}
@@ -114,7 +121,7 @@ export function DiffViewer({
             <ReactDiffViewer
               oldValue={leftText}
               newValue={rightText}
-              splitView={false}
+              splitView={tab === "split"}
               useDarkTheme
               compareMethod={DiffMethod.LINES}
               leftTitle={leftLabel}

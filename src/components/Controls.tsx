@@ -22,7 +22,7 @@ export function Controls() {
       <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-3">
         Comparison options
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="flex flex-col gap-2">
         <Toggle
           id="sortKeys"
           label="Sort keys"
@@ -53,7 +53,7 @@ export function Controls() {
           checked={options.stripIds}
           onChange={(v) => setOptions({ stripIds: v })}
         />
-        <div className="col-span-2 md:col-span-3 lg:col-span-1 flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <Label htmlFor="ignoreKeys" className="text-xs">
             Ignore keys (comma)
           </Label>

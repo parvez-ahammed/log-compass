@@ -1,18 +1,19 @@
 import { useEffect, useMemo } from "react";
-import { GitCompareArrows } from "lucide-react";
 import { FolderSelector } from "@/components/FolderSelector";
-import { FileSelector } from "@/components/FileSelector";
 import { JsonViewer } from "@/components/JsonViewer";
 import { DiffViewer } from "@/components/DiffViewer";
-import { Controls } from "@/components/Controls";
 import { useAppStore } from "@/store/useAppStore";
 import { parseAndNormalize } from "@/lib/jsonNormalizer";
+import { useAutoLoadTransfer } from "@/hooks/useAutoLoadTransfer";
+import { GitCompareArrows } from "lucide-react";
 
 const Index = () => {
   // Force dark mode default
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
+
+  useAutoLoadTransfer();
 
   const { upload, download, options } = useAppStore();
 
@@ -49,13 +50,6 @@ const Index = () => {
 
       <main className="mx-auto max-w-[1600px] px-6 py-5 space-y-4">
         <FolderSelector />
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <FileSelector side="upload" />
-          <FileSelector side="download" />
-        </div>
-
-        <Controls />
 
         <div className="grid lg:grid-cols-2 gap-4">
           <JsonViewer

@@ -20,41 +20,49 @@ async function getSevenZip(): Promise<any> {
 }
 
 /**
- * Extract a TransferData.json from a 7z archive File.
- * Returns the JSON text as string.
+ * Extract TransferData JSON text from a compressed archive File.
+ * Handles gzip (what this logging system actually emits despite the
+ * misleading `.7z` extension) and real 7z archives.
  */
 export async function extractTransferDataFrom7z(file: File): Promise<string> {
-  const sevenZip = await getSevenZip();
   const buf = new Uint8Array(await file.arrayBuffer());
+
+  // gzip magic: 1f 8b
+  if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
+    return await decompressGzip(buf);
+  }
+
+  const sevenZip = await getSevenZip();
   const archiveName = "input.7z";
-
-  // Write the archive into the virtual FS.
   sevenZip.FS.writeFile(archiveName, buf);
-
-  // Extract everything (preserve paths) to /out
   try {
     sevenZip.FS.mkdir("/out");
   } catch {
     // dir exists
   }
-  // -y answer Yes to all, x extract with full paths, -o output dir
   sevenZip.callMain(["x", archiveName, "-o/out", "-y"]);
 
-  // Walk /out recursively to find TransferData.json
-  const targetPath = findFileRecursive(sevenZip.FS, "/out", /transferdata\.json$/i);
+  const targetPath =
+    findFileRecursive(sevenZip.FS, "/out", /transferdata\.json$/i) ??
+    findFileRecursive(sevenZip.FS, "/out", /\.json$/i);
   if (!targetPath) {
     throw new Error("TransferData.json not found inside the archive");
   }
   const data = sevenZip.FS.readFile(targetPath);
   const text = new TextDecoder("utf-8").decode(data);
-
-  // cleanup virtual FS
   try {
     sevenZip.FS.unlink(archiveName);
   } catch {
     /* noop */
   }
   return text;
+}
+
+async function decompressGzip(buf: Uint8Array): Promise<string> {
+  const ds = new DecompressionStream("gzip");
+  const stream = new Blob([buf]).stream().pipeThrough(ds);
+  const out = await new Response(stream).arrayBuffer();
+  return new TextDecoder("utf-8").decode(out);
 }
 
 function findFileRecursive(FS: any, dir: string, re: RegExp): string | null {

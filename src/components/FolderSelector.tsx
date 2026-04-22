@@ -1,7 +1,17 @@
 import { useCallback, useRef, useState } from "react";
-import { FolderOpen, RotateCcw, Upload } from "lucide-react";
+import { FolderOpen, RotateCcw, Settings2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { FileSelector } from "@/components/FileSelector";
+import { Controls } from "@/components/Controls";
 import { useAppStore } from "@/store/useAppStore";
 import { detectFolders, groupByKind, toScannedFiles } from "@/lib/fileScanner";
 import { cn } from "@/lib/utils";
@@ -105,6 +115,7 @@ export function FolderSelector() {
           onChange={onPick}
         />
         <Button
+          size="sm"
           variant="default"
           onClick={() => inputRef.current?.click()}
           className="gap-2"
@@ -113,10 +124,39 @@ export function FolderSelector() {
           Select folder
         </Button>
         {rootName && (
-          <Button variant="outline" onClick={reset} className="gap-2">
+          <Button size="sm" variant="outline" onClick={reset} className="gap-2">
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
         )}
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={!rootName}
+              title="Configure sources & comparison options"
+            >
+              <Settings2 className="h-4 w-4" /> Config
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="right"
+            className="sm:max-w-md w-[92vw] overflow-y-auto"
+          >
+            <SheetHeader>
+              <SheetTitle>Configuration</SheetTitle>
+              <SheetDescription>
+                Pick the TransferData sources and tune comparison options.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-4 space-y-3">
+              <FileSelector side="upload" />
+              <FileSelector side="download" />
+              <Controls />
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </Card>
   );
