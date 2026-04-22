@@ -24,6 +24,8 @@ export interface FolderMatch {
 
 const UPLOAD_RE = /(^|\/)upload[\s_-]*api[\s_-]*logs?(\/|$)/i;
 const DOWNLOAD_RE = /(^|\/)download[\s_-]*api[\s_-]*logs?(\/|$)/i;
+// Matches files like "TransferData.json", "TransferData.json.7z",
+// or prefixed variants like "20260422183855_943_TransferData.json[.7z]".
 const TRANSFER_RE = /transferdata\.json(\.7z)?$/i;
 
 export function getRelativePath(file: File): string {
@@ -66,8 +68,21 @@ export function detectFolders(files: ScannedFile[]): FolderMatch[] {
         folderMap.set(ancestor, match);
       }
       match.files.push(f);
-      if (TRANSFER_RE.test(f.path) && !match.transferFile) {
-        match.transferFile = f;
+      if (TRANSFER_RE.test(f.path)) {
+        const existing = match.transferFile;
+        if (!existing) {
+          match.transferFile = f;
+        } else {
+          // Prefer .7z over plain .json; otherwise pick the lexicographically
+          // latest filename (timestamps sort naturally).
+          const existingIs7z = /\.7z$/i.test(existing.path);
+          const currentIs7z = /\.7z$/i.test(f.path);
+          if (currentIs7z && !existingIs7z) {
+            match.transferFile = f;
+          } else if (currentIs7z === existingIs7z && f.path > existing.path) {
+            match.transferFile = f;
+          }
+        }
       }
       break;
     }
