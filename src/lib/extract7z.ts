@@ -6,8 +6,7 @@ let sevenZipPromise: Promise<any> | null = null;
 async function getSevenZip(): Promise<any> {
   if (!sevenZipPromise) {
     sevenZipPromise = (async () => {
-      // @ts-expect-error – module ships its own types in newer versions
-      const mod = await import("7z-wasm");
+      const mod: any = await import("7z-wasm");
       const factory = mod.default || mod;
       return factory();
     })();

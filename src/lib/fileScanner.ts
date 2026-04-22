@@ -28,9 +28,7 @@ const TRANSFER_RE = /transferdata\.json(\.7z)?$/i;
 
 export function getRelativePath(file: File): string {
   // Browser sets webkitRelativePath when using <input webkitdirectory>
-  // Fallback to file.name for plain uploads.
-  // @ts-expect-error – non-standard but widely supported
-  const rel: string = file.webkitRelativePath || file.name;
+  const rel: string = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
   return rel;
 }
 
