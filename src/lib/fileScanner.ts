@@ -24,6 +24,8 @@ export interface FolderMatch {
 
 const UPLOAD_RE = /(^|\/)upload[\s_-]*api[\s_-]*logs?(\/|$)/i;
 const DOWNLOAD_RE = /(^|\/)download[\s_-]*api[\s_-]*logs?(\/|$)/i;
+// Matches files like "TransferData.json", "TransferData.json.7z",
+// or prefixed variants like "20260422183855_943_TransferData.json[.7z]".
 const TRANSFER_RE = /transferdata\.json(\.7z)?$/i;
 
 export function getRelativePath(file: File): string {
