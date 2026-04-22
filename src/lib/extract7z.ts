@@ -8,7 +8,12 @@ async function getSevenZip(): Promise<any> {
     sevenZipPromise = (async () => {
       const mod: any = await import("7z-wasm");
       const factory = mod.default || mod;
-      return factory();
+      return factory({
+        locateFile: (path: string) => {
+          if (path.endsWith(".wasm")) return "/wasm/7zz.wasm";
+          return path;
+        },
+      });
     })();
   }
   return sevenZipPromise;
