@@ -23,19 +23,59 @@ export interface DiffResult {
   summary: DiffSummary;
 }
 
+type Seg = string | number;
+
+function materializePath(segs: Seg[]): string {
+  let out = "$";
+  for (const s of segs) {
+    out += typeof s === "number" ? `[${s}]` : `.${s}`;
+  }
+  return out;
+}
+
 export function structuredDiff(left: unknown, right: unknown): DiffResult {
   const entries: DiffEntry[] = [];
-  walk(left, right, "$", entries);
-  const summary: DiffSummary = {
-    added: entries.filter((e) => e.type === "added").length,
-    removed: entries.filter((e) => e.type === "removed").length,
-    changed: entries.filter((e) => e.type === "changed").length,
-    total: entries.length,
-  };
+  const summary: DiffSummary = { added: 0, removed: 0, changed: 0, total: 0 };
+  const segs: Seg[] = [];
+  walk(left, right, segs, entries, summary, true);
   return { entries, summary };
 }
 
-function walk(a: unknown, b: unknown, path: string, out: DiffEntry[]) {
+/**
+ * Fast count-only walk. Skips path string allocation and entries array —
+ * good for badge counts when structured tab is not open.
+ */
+export function countDiff(left: unknown, right: unknown): DiffSummary {
+  const summary: DiffSummary = { added: 0, removed: 0, changed: 0, total: 0 };
+  const segs: Seg[] = [];
+  walk(left, right, segs, null, summary, false);
+  return summary;
+}
+
+function emit(
+  out: DiffEntry[] | null,
+  summary: DiffSummary,
+  segs: Seg[],
+  entry: Omit<DiffEntry, "path">,
+  collect: boolean
+) {
+  summary.total++;
+  if (entry.type === "added") summary.added++;
+  else if (entry.type === "removed") summary.removed++;
+  else summary.changed++;
+  if (collect && out) {
+    out.push({ path: materializePath(segs), ...entry });
+  }
+}
+
+function walk(
+  a: unknown,
+  b: unknown,
+  segs: Seg[],
+  out: DiffEntry[] | null,
+  summary: DiffSummary,
+  collect: boolean
+) {
   if (Object.is(a, b)) return;
 
   const aIsObj = a !== null && typeof a === "object" && !Array.isArray(a);
@@ -47,11 +87,13 @@ function walk(a: unknown, b: unknown, path: string, out: DiffEntry[]) {
     const oa = a as Record<string, unknown>;
     const ob = b as Record<string, unknown>;
     const keys = new Set<string>([...Object.keys(oa), ...Object.keys(ob)]);
-    for (const k of Array.from(keys).sort()) {
-      const next = `${path}.${k}`;
-      if (!(k in oa)) out.push({ path: next, type: "added", right: ob[k] });
-      else if (!(k in ob)) out.push({ path: next, type: "removed", left: oa[k] });
-      else walk(oa[k], ob[k], next, out);
+    const sorted = Array.from(keys).sort();
+    for (const k of sorted) {
+      segs.push(k);
+      if (!(k in oa)) emit(out, summary, segs, { type: "added", right: ob[k] }, collect);
+      else if (!(k in ob)) emit(out, summary, segs, { type: "removed", left: oa[k] }, collect);
+      else walk(oa[k], ob[k], segs, out, summary, collect);
+      segs.pop();
     }
     return;
   }
@@ -61,18 +103,19 @@ function walk(a: unknown, b: unknown, path: string, out: DiffEntry[]) {
     const bb = b as unknown[];
     const len = Math.max(aa.length, bb.length);
     for (let i = 0; i < len; i++) {
-      const next = `${path}[${i}]`;
-      if (i >= aa.length) out.push({ path: next, type: "added", right: bb[i] });
-      else if (i >= bb.length) out.push({ path: next, type: "removed", left: aa[i] });
-      else walk(aa[i], bb[i], next, out);
+      segs.push(i);
+      if (i >= aa.length) emit(out, summary, segs, { type: "added", right: bb[i] }, collect);
+      else if (i >= bb.length) emit(out, summary, segs, { type: "removed", left: aa[i] }, collect);
+      else walk(aa[i], bb[i], segs, out, summary, collect);
+      segs.pop();
     }
     return;
   }
 
   // primitive or type-mismatch
-  if (a === undefined) out.push({ path, type: "added", right: b });
-  else if (b === undefined) out.push({ path, type: "removed", left: a });
-  else out.push({ path, type: "changed", left: a, right: b });
+  if (a === undefined) emit(out, summary, segs, { type: "added", right: b }, collect);
+  else if (b === undefined) emit(out, summary, segs, { type: "removed", left: a }, collect);
+  else emit(out, summary, segs, { type: "changed", left: a, right: b }, collect);
 }
 
 export function previewValue(v: unknown, max = 80): string {

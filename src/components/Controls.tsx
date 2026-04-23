@@ -1,7 +1,13 @@
+import { HelpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAppStore } from "@/store/useAppStore";
 
 export function Controls() {
@@ -12,6 +18,8 @@ export function Controls() {
     setIgnoreKeysInput,
     wordDiff,
     setWordDiff,
+    autoHideUnchanged,
+    setAutoHideUnchanged,
   } = useAppStore();
 
   const onIgnoreKeysChange = (s: string) => {
@@ -40,6 +48,13 @@ export function Controls() {
           label="Highlight word changes"
           checked={wordDiff}
           onChange={setWordDiff}
+        />
+        <Toggle
+          id="autoHideUnchanged"
+          label="Auto-hide unchanged regions"
+          checked={autoHideUnchanged}
+          onChange={setAutoHideUnchanged}
+          help="Collapses unchanged blocks in the diff viewer, showing 3 context lines around each change. May slow down scrolling and tab-switching on very large files (thousands of diffs) because Monaco creates one view-zone per hidden region."
         />
         <Toggle
           id="ignoreOrdering"
@@ -87,9 +102,10 @@ interface ToggleProps {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  help?: string;
 }
 
-function Toggle({ id, label, checked, onChange }: ToggleProps) {
+function Toggle({ id, label, checked, onChange, help }: ToggleProps) {
   return (
     <label
       htmlFor={id}
@@ -100,7 +116,27 @@ function Toggle({ id, label, checked, onChange }: ToggleProps) {
         checked={checked}
         onCheckedChange={(v) => onChange(Boolean(v))}
       />
-      <span className="text-xs">{label}</span>
+      <span className="text-xs flex-1">{label}</span>
+      {help && (
+        <Tooltip delayDuration={150}>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="text-muted-foreground hover:text-foreground"
+              aria-label={`${label} — help`}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs text-xs">
+            {help}
+          </TooltipContent>
+        </Tooltip>
+      )}
     </label>
   );
 }

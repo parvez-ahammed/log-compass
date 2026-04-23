@@ -27,29 +27,32 @@ function shouldDrop(key: string, opts: NormalizeOptions): boolean {
   return false;
 }
 
+function sortKeysCached(keys: string[]): string[] {
+  // Case-insensitive sort so `SP_Act_foo` sits next to `foo` rather
+  // than being grouped with all other uppercase-prefixed keys.
+  // Precompute lowercase once to avoid O(n log n) toLowerCase calls.
+  const dec = keys.map((k) => [k.toLowerCase(), k] as const);
+  dec.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  return dec.map((p) => p[1]);
+}
+
 export function normalizeValue(value: unknown, opts: NormalizeOptions): unknown {
   if (Array.isArray(value)) {
     let arr = value.map((v) => normalizeValue(v, opts));
     if (opts.ignoreNulls) arr = arr.filter((v) => v !== null && v !== undefined);
     if (opts.ignoreOrdering) {
-      arr = [...arr].sort((a, b) => {
-        const sa = stableStringify(a);
-        const sb = stableStringify(b);
-        return sa < sb ? -1 : sa > sb ? 1 : 0;
-      });
+      // Decorate-sort-undecorate: stringify each element once, not N times
+      // per sort comparison.
+      const dec = arr.map((v) => ({ k: stableStringify(v), v }));
+      dec.sort((a, b) => (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+      arr = dec.map((d) => d.v);
     }
     return arr;
   }
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj).filter((k) => !shouldDrop(k, opts));
-    // Case-insensitive sort so `SP_Act_foo` sits next to `foo` rather
-    // than being grouped with all other uppercase-prefixed keys.
-    const sortedKeys = opts.sortKeys
-      ? [...keys].sort((a, b) =>
-          a.toLowerCase().localeCompare(b.toLowerCase())
-        )
-      : keys;
+    const sortedKeys = opts.sortKeys ? sortKeysCached(keys) : keys;
     const out: Record<string, unknown> = {};
     for (const k of sortedKeys) {
       const v = normalizeValue(obj[k], opts);
@@ -84,9 +87,7 @@ function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return "[" + value.map(stableStringify).join(",") + "]";
   const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort((a, b) =>
-    a.toLowerCase().localeCompare(b.toLowerCase())
-  );
+  const keys = sortKeysCached(Object.keys(obj));
   return (
     "{" +
     keys.map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k])).join(",") +

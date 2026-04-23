@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(node scripts/generateTestData.mjs)",
+      "Bash(npx eslint *)",
+      "Bash(git add *)",
+      "Bash(npx tauri *)"
     ]
   }
 }

@@ -46,6 +46,9 @@ export function FileSelector({ side }: FileSelectorProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setSide(side, { loading: false, error: msg });
+    } finally {
+      // Allow re-picking the same file.
+      e.target.value = "";
     }
   };
 
@@ -110,8 +113,13 @@ export function FileSelector({ side }: FileSelectorProps) {
           <Button
             size="sm"
             variant="outline"
-            className="gap-2"
-            onClick={() => fallbackRef.current?.click()}
+            className="gap-2 hover:bg-muted hover:text-foreground"
+            onClick={() => {
+              const el = fallbackRef.current;
+              if (!el) return;
+              el.value = "";
+              el.click();
+            }}
           >
             <Upload className="h-3.5 w-3.5" />
             Upload JSON / .7z manually

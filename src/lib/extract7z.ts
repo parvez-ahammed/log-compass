@@ -25,13 +25,19 @@ async function getSevenZip(): Promise<any> {
  * misleading `.7z` extension) and real 7z archives.
  */
 export async function extractTransferDataFrom7z(file: File): Promise<string> {
-  const buf = new Uint8Array(await file.arrayBuffer());
+  // Peek magic bytes without reading whole file — gzip path can stream
+  // directly from disk instead of allocating a full-size Uint8Array.
+  const headBuf = await file.slice(0, 2).arrayBuffer();
+  const head = new Uint8Array(headBuf);
 
-  // gzip magic: 1f 8b
-  if (buf.length >= 2 && buf[0] === 0x1f && buf[1] === 0x8b) {
-    return await decompressGzip(buf);
+  if (head.length >= 2 && head[0] === 0x1f && head[1] === 0x8b) {
+    const ds = new DecompressionStream("gzip");
+    const stream = file.stream().pipeThrough(ds);
+    return await new Response(stream).text();
   }
 
+  // Real 7z: must materialize full buffer for MEMFS write.
+  const buf = new Uint8Array(await file.arrayBuffer());
   const sevenZip = await getSevenZip();
   const archiveName = "input.7z";
   sevenZip.FS.writeFile(archiveName, buf);
@@ -56,13 +62,6 @@ export async function extractTransferDataFrom7z(file: File): Promise<string> {
     /* noop */
   }
   return text;
-}
-
-async function decompressGzip(buf: Uint8Array): Promise<string> {
-  const ds = new DecompressionStream("gzip");
-  const stream = new Blob([buf]).stream().pipeThrough(ds);
-  const out = await new Response(stream).arrayBuffer();
-  return new TextDecoder("utf-8").decode(out);
 }
 
 function findFileRecursive(FS: any, dir: string, re: RegExp): string | null {

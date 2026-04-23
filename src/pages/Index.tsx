@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { FolderSelector } from "@/components/FolderSelector";
 import { JsonViewer } from "@/components/JsonViewer";
 import { DiffViewer } from "@/components/DiffViewer";
 import { useAppStore } from "@/store/useAppStore";
-import { parseAndNormalize } from "@/lib/jsonNormalizer";
+import { useNormalized } from "@/hooks/useNormalized";
 import { useAutoLoadTransfer } from "@/hooks/useAutoLoadTransfer";
 import { GitCompareArrows } from "lucide-react";
 
@@ -15,22 +15,20 @@ const Index = () => {
 
   useAutoLoadTransfer();
 
-  const { upload, download, options, wordDiff } = useAppStore();
+  const uploadRaw = useAppStore((s) => s.upload.rawText);
+  const uploadLoading = useAppStore((s) => s.upload.loading);
+  const uploadError = useAppStore((s) => s.upload.error);
+  const uploadLabel = useAppStore((s) => s.upload.sourceLabel);
+  const downloadRaw = useAppStore((s) => s.download.rawText);
+  const downloadLoading = useAppStore((s) => s.download.loading);
+  const downloadError = useAppStore((s) => s.download.error);
+  const downloadLabel = useAppStore((s) => s.download.sourceLabel);
+  const options = useAppStore((s) => s.options);
+  const wordDiff = useAppStore((s) => s.wordDiff);
+  const autoHideUnchanged = useAppStore((s) => s.autoHideUnchanged);
 
-  const left = useMemo(
-    () =>
-      upload.rawText
-        ? parseAndNormalize(upload.rawText, options)
-        : { json: null, pretty: "", error: undefined as string | undefined },
-    [upload.rawText, options]
-  );
-  const right = useMemo(
-    () =>
-      download.rawText
-        ? parseAndNormalize(download.rawText, options)
-        : { json: null, pretty: "", error: undefined as string | undefined },
-    [download.rawText, options]
-  );
+  const left = useNormalized(uploadRaw, options);
+  const right = useNormalized(downloadRaw, options);
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,25 +53,26 @@ const Index = () => {
           <JsonViewer
             title="Upload — TransferData.json"
             value={left.pretty}
-            loading={upload.loading}
-            error={left.error || upload.error}
+            loading={uploadLoading || left.computing}
+            error={left.error || uploadError}
           />
           <JsonViewer
             title="Download — TransferData.json"
             value={right.pretty}
-            loading={download.loading}
-            error={right.error || download.error}
+            loading={downloadLoading || right.computing}
+            error={right.error || downloadError}
           />
         </div>
 
         <DiffViewer
-          leftLabel={upload.sourceLabel || "Upload"}
-          rightLabel={download.sourceLabel || "Download"}
+          leftLabel={uploadLabel || "Upload"}
+          rightLabel={downloadLabel || "Download"}
           leftText={left.pretty}
           rightText={right.pretty}
           leftJson={left.json}
           rightJson={right.json}
           wordDiff={wordDiff}
+          autoHideUnchanged={autoHideUnchanged}
         />
 
         <footer className="text-center text-xs text-muted-foreground py-6">

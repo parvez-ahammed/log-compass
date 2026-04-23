@@ -37,6 +37,17 @@ export function FolderSelector() {
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
     handleFiles(files);
+    // Clear so picking the same folder again still fires onChange.
+    e.target.value = "";
+  };
+
+  const openPicker = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    // Extra safety: wipe before opening. Some browsers retain value
+    // even after onChange reset above.
+    el.value = "";
+    el.click();
   };
 
   const onDrop = async (e: React.DragEvent) => {
@@ -117,14 +128,19 @@ export function FolderSelector() {
         <Button
           size="sm"
           variant="default"
-          onClick={() => inputRef.current?.click()}
+          onClick={openPicker}
           className="gap-2"
         >
           <Upload className="h-4 w-4" />
           Select folder
         </Button>
         {rootName && (
-          <Button size="sm" variant="outline" onClick={reset} className="gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={reset}
+            className="gap-2 hover:bg-muted hover:text-foreground"
+          >
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
         )}
@@ -133,7 +149,7 @@ export function FolderSelector() {
             <Button
               size="sm"
               variant="outline"
-              className="gap-2"
+              className="gap-2 hover:bg-muted hover:text-foreground"
               disabled={!rootName}
               title="Configure sources & comparison options"
             >

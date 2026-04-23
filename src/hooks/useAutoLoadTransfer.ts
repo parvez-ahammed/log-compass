@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { extractTransferDataFrom7z, readJsonFile } from "@/lib/extract7z";
 import { useAppStore, type Side } from "@/store/useAppStore";
 
@@ -11,7 +11,13 @@ function useLoadSide(side: Side) {
   );
   const setSide = useAppStore((s) => s.setSide);
 
-  const current = folders.find((f) => f.folderPath === selected);
+  // folders.find returns a fresh reference-comparable result on every render.
+  // Memoize to stop the effect from re-running (and re-loading the file) on
+  // unrelated store updates.
+  const current = useMemo(
+    () => folders.find((f) => f.folderPath === selected),
+    [folders, selected]
+  );
 
   useEffect(() => {
     if (!current) return;

@@ -39,6 +39,10 @@ interface AppState {
   /** Highlight intra-line changed tokens in orange (WORDS compare method). */
   wordDiff: boolean;
 
+  /** Force-collapse unchanged regions in Monaco diff viewer. Heavy on
+   * large files — each hidden run becomes a viewzone and degrades scroll. */
+  autoHideUnchanged: boolean;
+
   setScan: (
     rootName: string,
     scanned: ScannedFile[],
@@ -50,6 +54,7 @@ interface AppState {
   setOptions: (patch: Partial<NormalizeOptions>) => void;
   setIgnoreKeysInput: (s: string) => void;
   setWordDiff: (v: boolean) => void;
+  setAutoHideUnchanged: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -67,6 +72,7 @@ export const useAppStore = create<AppState>()(
       options: { ...defaultNormalizeOptions },
       ignoreKeysInput: "",
       wordDiff: true,
+      autoHideUnchanged: false,
 
       setScan: (rootName, scanned, uploads, downloads) =>
         set({
@@ -99,6 +105,8 @@ export const useAppStore = create<AppState>()(
 
       setWordDiff: (v) => set({ wordDiff: v }),
 
+      setAutoHideUnchanged: (v) => set({ autoHideUnchanged: v }),
+
       reset: () =>
         set({
           rootName: null,
@@ -122,6 +130,7 @@ export const useAppStore = create<AppState>()(
         options: s.options,
         ignoreKeysInput: s.ignoreKeysInput,
         wordDiff: s.wordDiff,
+        autoHideUnchanged: s.autoHideUnchanged,
       }),
     }
   )
