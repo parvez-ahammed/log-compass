@@ -43,7 +43,13 @@ export function normalizeValue(value: unknown, opts: NormalizeOptions): unknown 
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj).filter((k) => !shouldDrop(k, opts));
-    const sortedKeys = opts.sortKeys ? [...keys].sort() : keys;
+    // Case-insensitive sort so `SP_Act_foo` sits next to `foo` rather
+    // than being grouped with all other uppercase-prefixed keys.
+    const sortedKeys = opts.sortKeys
+      ? [...keys].sort((a, b) =>
+          a.toLowerCase().localeCompare(b.toLowerCase())
+        )
+      : keys;
     const out: Record<string, unknown> = {};
     for (const k of sortedKeys) {
       const v = normalizeValue(obj[k], opts);
@@ -60,8 +66,13 @@ export function parseAndNormalize(
   opts: NormalizeOptions
 ): { json: unknown; pretty: string; error?: string } {
   try {
-    const parsed = JSON.parse(text);
-    const normalized = normalizeValue(parsed, opts);
+    // Strip UTF-8 BOM and whitespace — common cause of silent parse failure
+    // that falls back to raw unsorted text.
+    const cleaned = text.replace(/^﻿/, "").trim();
+    const parsed = JSON.parse(cleaned);
+    // Force sortKeys so upload/download render in identical key order,
+    // making line diffs meaningful regardless of source ordering.
+    const normalized = normalizeValue(parsed, { ...opts, sortKeys: true });
     return { json: normalized, pretty: JSON.stringify(normalized, null, 2) };
   } catch (e) {
     const err = e instanceof Error ? e.message : String(e);
@@ -73,7 +84,9 @@ function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return "[" + value.map(stableStringify).join(",") + "]";
   const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
+  const keys = Object.keys(obj).sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
   return (
     "{" +
     keys.map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k])).join(",") +

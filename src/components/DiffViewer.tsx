@@ -14,6 +14,7 @@ interface DiffViewerProps {
   rightText: string;
   leftJson: unknown;
   rightJson: unknown;
+  wordDiff?: boolean;
 }
 
 const TEXT_DIFF_LIMIT = 200_000; // chars per side
@@ -26,6 +27,7 @@ export function DiffViewer({
   rightText,
   leftJson,
   rightJson,
+  wordDiff = true,
 }: DiffViewerProps) {
   const [tab, setTab] = useState<"unified" | "split" | "structured">("unified");
 
@@ -123,7 +125,10 @@ export function DiffViewer({
               newValue={rightText}
               splitView={tab === "split"}
               useDarkTheme
-              compareMethod={DiffMethod.LINES}
+              // WORDS highlights which tokens inside a changed line differ
+              // (rendered orange below). LINES shows only whole-line adds/
+              // removes without intra-line detail.
+              compareMethod={wordDiff ? DiffMethod.WORDS : DiffMethod.LINES}
               leftTitle={leftLabel}
               rightTitle={rightLabel}
               styles={{
@@ -134,8 +139,11 @@ export function DiffViewer({
                     addedColor: "hsl(142 70% 80%)",
                     removedBackground: "hsl(0 60% 18%)",
                     removedColor: "hsl(0 70% 85%)",
-                    wordAddedBackground: "hsl(142 70% 30%)",
-                    wordRemovedBackground: "hsl(0 70% 30%)",
+                    // GitHub-style intra-line: deeper shade of parent line
+                    // color. Readers instantly map word-highlight → line
+                    // type without a third color to decode.
+                    wordAddedBackground: "hsl(142 80% 32%)",
+                    wordRemovedBackground: "hsl(0 80% 35%)",
                     gutterBackground: "hsl(222 14% 14%)",
                     gutterColor: "hsl(215 14% 60%)",
                     codeFoldBackground: "hsl(222 14% 16%)",

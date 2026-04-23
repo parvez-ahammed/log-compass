@@ -15,7 +15,7 @@ const Index = () => {
 
   useAutoLoadTransfer();
 
-  const { upload, download, options } = useAppStore();
+  const { upload, download, options, wordDiff } = useAppStore();
 
   const left = useMemo(
     () =>
@@ -73,6 +73,7 @@ const Index = () => {
           rightText={right.pretty}
           leftJson={left.json}
           rightJson={right.json}
+          wordDiff={wordDiff}
         />
 
         <footer className="text-center text-xs text-muted-foreground py-6">

@@ -5,8 +5,14 @@ import { Label } from "@/components/ui/label";
 import { useAppStore } from "@/store/useAppStore";
 
 export function Controls() {
-  const { options, setOptions, ignoreKeysInput, setIgnoreKeysInput } =
-    useAppStore();
+  const {
+    options,
+    setOptions,
+    ignoreKeysInput,
+    setIgnoreKeysInput,
+    wordDiff,
+    setWordDiff,
+  } = useAppStore();
 
   const onIgnoreKeysChange = (s: string) => {
     setIgnoreKeysInput(s);
@@ -28,6 +34,12 @@ export function Controls() {
           label="Sort keys"
           checked={options.sortKeys}
           onChange={(v) => setOptions({ sortKeys: v })}
+        />
+        <Toggle
+          id="wordDiff"
+          label="Highlight word changes"
+          checked={wordDiff}
+          onChange={setWordDiff}
         />
         <Toggle
           id="ignoreOrdering"
